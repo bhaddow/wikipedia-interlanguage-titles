@@ -1,6 +1,13 @@
 import csv
 import argparse
 
+import gzip
+
+def open_or_gzip(filename):
+  if filename.endswith(".gz"):
+    return gzip.open(filename, mode="rt", encoding='utf-8', errors='ignore')
+  else:
+    return open(filename, mode="rt", encoding='utf-8', errors='ignore')
 
 def find_records(line):
     records_str = line.partition('` VALUES ')[2]
@@ -11,7 +18,7 @@ def find_records(line):
 
 def get_pages(page_sql_file):
     all_records = []
-    for line in open(page_sql_file).readlines():
+    for line in open_or_gzip(page_sql_file):
         if line.startswith('INSERT INTO '):
             all_records += find_records(line)
 
@@ -26,7 +33,7 @@ def get_pages(page_sql_file):
 
 def get_links(langlinks_sql_file, lang_code):
     all_records = []
-    for line in open(langlinks_sql_file).readlines():
+    for line in open_or_gzip(langlinks_sql_file):
         if line.startswith('INSERT INTO '):
             all_records += find_records(line)
 
@@ -44,15 +51,10 @@ def match_titles(page_file, langlinks_file, lang_code, output_file):
     pages = get_pages(page_file)
     pageid_titles = get_links(langlinks_file, lang_code)
 
-    translations = []
     for ind, (page_id, ori_title) in enumerate(pages.items()):
         if page_id in pageid_titles:
             tar_title = pageid_titles[page_id]
-            translations.append((page_id, ori_title, tar_title))
-
-    with open(output_file, 'w') as f:
-        for page_id, ori_title, tar_title in translations:
-            f.write('{}\t{}\t{}\n'.format(page_id, ori_title, tar_title))
+            yield (page_id, ori_title, tar_title)
 
 
 if __name__ == '__main__':
@@ -62,4 +64,6 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--lang_code', help='target language code, e.g. en', required=True)
     parser.add_argument('-o', '--output_file', help='output file, e.g. translations.txt', required=True)
     args = vars(parser.parse_args())
-    match_titles(**args)
+    with open(args.output_file, 'w') as f:
+      for (page_id, ori_title, tar_title) in match_titles(**args):
+        f.write('{}\t{}\t{}\n'.format(page_id, ori_title, tar_title))
