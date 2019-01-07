@@ -42,7 +42,7 @@ def main():
   else:
     LOG.debug("Using existing langlinks file")
 
-  output_file = "{0}/wikititles.{1}-{2}.tsv".format(args.working_directory, args.source_language, args.target_language)
+  output_file = "{0}/{1}.{2}-{3}.tsv".format(args.working_directory, args.output_stem, args.source_language, args.target_language)
   LOG.debug("Writing corpus to " + output_file)
   brackets = re.compile(r"\([^\)]*\)")
   with open(output_file, "w") as ofh:
